@@ -1,0 +1,169 @@
+---
+title: "hw4"
+author: "Ziyi Bai"
+date: "2/12/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(boot)
+library(base)
+#install.packages("leaps")
+library(leaps)
+```
+
+### 5.8
+## (a)
+```{r}
+set.seed(1)
+x=rnorm(100)
+y=x-2*x^2+rnorm(100)
+```
+n is 100 and p is 2.
+
+##(b)
+```{r}
+plot(x,y)
+```
+Y and x has a non-linear relationship. X and y seems have a quadratic relationship.
+
+##(c)
+```{r}
+set.seed(1)
+df1 <- data.frame(x,y)
+fit1 <- glm(y~x,data=df1)
+print(paste0("LOOCV error for i: ", cv.glm(df1, fit1)$delta[1]))
+
+fit2 <- glm(y~poly(x,2),data=df1)
+print(paste0("LOOCV error for ii: ", cv.glm(df1, fit2)$delta[1]))
+
+fit3 <- glm(y~poly(x,3),data=df1)
+print(paste0("LOOCV error for iii: ", cv.glm(df1, fit3)$delta[1]))
+
+fit4 <- glm(y~poly(x,4),data=df1)
+print(paste0("LOOCV error for iv: ", cv.glm(df1, fit4)$delta[1]))
+```
+
+##(d)
+```{r}
+set.seed(100)
+df1 <- data.frame(x,y)
+fit5 <- glm(y~x,data=df1)
+print(paste0("LOOCV error for i: ", cv.glm(df1, fit5)$delta[1]))
+
+fit6 <- glm(y~poly(x,2),data=df1)
+print(paste0("LOOCV error for ii: ", cv.glm(df1, fit6)$delta[1]))
+
+fit7 <- glm(y~poly(x,3),data=df1)
+print(paste0("LOOCV error for iii: ", cv.glm(df1, fit7)$delta[1]))
+
+fit8 <- glm(y~poly(x,4),data=df1)
+print(paste0("LOOCV error for iv: ", cv.glm(df1, fit8)$delta[1]))
+```
+
+The results are the same. Because LOOCV trains the model on all observations except one, so each time the model is trained with the same set of observations for each cross validation set.
+
+##(e)
+The second one has the smallest LOOCV error. Yes, because this one fits the plot best.
+
+##(f)
+```{r}
+for (i in 1:4) {
+  print(summary(glm(y~poly(x,i),data=df1)))
+}
+  
+```
+
+Yes, only intercept, x and x^2 is significant in ths result.
+
+
+### 6.2
+##(a)
+the third one is correct.
+##(b)
+The third one is correct. Give improved prediction accuracy when its increase in bias is less than its decrease in variance.
+##(c)
+The second one is correct. Since non-linear method is more flexible than least square.
+
+### 6.10
+##(a)
+```{r}
+set.seed(9)
+x <- matrix(rnorm(1000*20), 1000, 20)
+b <- matrix(rnorm(20), 20, 1)
+b[2] <- 0
+b[5] <- 0
+b[9] <- 0
+b[14] <- 0
+b[18] <- 0
+err <- rnorm(1000)
+y <- x%*%b + err 
+```
+
+##(b)
+```{r}
+df2 <- data.frame(x,y)
+train <- df2[1:100,]
+test <- df2[101:1000,]
+```
+
+##(c)
+```{r}
+n <- 100
+subset1 <- regsubsets(y~.,train,nvmax = 20)
+plot((1/n)*summary(subset1)$rss, xlab="Numver of Variables",ylab="Training MSE",type="b",pch=19)
+axis(1,at=seq(1,20,1))
+```
+
+##(d)
+```{r}
+test.mat <- model.matrix(y~.,test,nvmax=20)
+errs <- rep(NA,20)
+for (i in 1:20){
+  coeff <- coef(subset1, id=1)
+  pred <- test.mat[,names(coeff)]%*%coeff
+  errs[i] <- mean((pred-test[,21])^2)
+}
+
+plot(errs, xlab = "Number of Variables", ylab="Test MSE", type = "b",pch=19)
+axis(1,at=seq(1,20,1))
+```
+
+##(e)
+```{r}
+which.min(errs)
+```
+The model has the smallest MSE.
+
+##(f)
+```{r}
+coef(subset1, which.min(errs))
+```
+
+##(g)
+```{r}
+errors <- rep(NA, 20)
+x_colname <- colnames(x, do.NULL = FALSE, prefix = "X")
+for (i in 1:20) {
+  coeff <- coef(subset1, id = i)
+  errors[i] <- sqrt(sum((b[x_colname %in% names(coeff)] - coeff[names(coeff) %in% x_colname])^2) + sum(b[!(x_colname %in% names(coeff))])^2) 
+}
+plot(errors, xlab = "Number of variables", ylab = "MSE for estimated and true coefficients", type = "b", pch = 19)
+axis(1, at = seq(1, 20, 1))
+```
+
+The model with 6 variables has the least error, which implies that the model gives the coefficient estimate close to the true parameter does not need to be the model that has least MSE. It is not necessarily the best model.
+
+
+
+
+
+
+
+
+
+
+
+
+

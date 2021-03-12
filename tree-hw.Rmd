@@ -1,0 +1,163 @@
+---
+title: "Tree-hw-Ziyi Bai"
+author: "Ziyi Bai"
+date: "3/3/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load("MASS","randomForest","ISLR","tree","gbm","knitr")
+```
+
+## 8.1
+```{r}
+data <- data.frame(c(25,25,75,76,65,89),c(77,50,22,80,55,30))
+plot(data, xlim=c(0,100),ylim=c(0,100),xlab="x1",ylab="x2")
+```
+
+## 8.2
+
+## 8.3
+```{r}
+p <- seq(0,1,0.01)
+
+gini <- 2*p*(1-p)
+error <- 1-pmax(p,1-p)
+entropy <- -(p*log(p)+(1-p)*log(1-p))
+
+plot(NA,xlim = c(0,1),ylim = c(0,1),xlab = "p",ylab = "f")
+lines(p,gini,type = "l",col="red",lwd=1.5)
+lines(p,error,type = "l",col="black",lwd=1.5)
+lines(p,entropy,type="l",col="orange",lwd=1.5)
+
+legend(x="topright",legend = c("Gini Index","Class Error","Cross Entropy"),col=c("red","black","orange"),lty=1)
+```
+
+## 8.5
+Based on majority vote approach, the result is red; based on average probability, the result is green.
+
+## 8.7
+```{r}
+data("Boston")
+set.seed(9)
+train <- sample(1:nrow(Boston),nrow(Boston)/2)
+Boston_train <- Boston[train,-14]
+Boston_test <- Boston[-train,-14]
+y_train <- Boston[train,14]
+y_test <- Boston[-train,14]
+
+rf1 <- randomForest(Boston_train, y = y_train, xtest = Boston_test, ytest = y_test, mtry = ncol(Boston) - 1, ntree = 500)
+rf2 <- randomForest(Boston_train, y = y_train, xtest = Boston_test, ytest = y_test, mtry = (ncol(Boston) - 1)/2, ntree = 500)
+rf3 <- randomForest(Boston_train, y = y_train, xtest = Boston_test, ytest = y_test, mtry = sqrt(ncol(Boston) - 1), ntree = 500)
+plot(1:500, rf1$test$mse, type = "l", col = "green", xlab = "Number of Trees", ylab = "Test MSE")
+lines(1:500, rf2$test$mse, type = "l", col = "blue")
+lines(1:500, rf3$test$mse, type = "l", col = "red")
+legend(x = "topright", c("m = p", "m = p/2", "m = sqrt(p)"), col = c("green", "blue", "red"), lty = 1)
+
+```
+
+## 8.8
+##(a)
+```{r}
+data("Carseats")
+set.seed(9)
+subs <-sample(1:nrow(Carseats),nrow(Carseats)*0.7)
+car_train <- Carseats[subs, ]
+car_test <- Carseats[-subs, ]
+```
+
+##(b)
+```{r}
+rtree <- tree(Sales~.,data=car_train)
+summary(rtree)
+
+plot(rtree)
+text(rtree,cex=0.65)
+
+#MSE
+pred_rtree <- predict(rtree,car_test)
+mse_rtree <- mean((car_test$Sales-pred_rtree)^2)
+print(paste0("The test MSE for the regression tree is:", mse_rtree))
+```
+
+##(c)
+```{r}
+cv_tree <- cv.tree(rtree)
+plot(cv_tree$size,cv_tree$dev)
+
+prune_rtree <- prune.tree(rtree,best=6)
+plot(prune_rtree)
+text(prune_rtree)
+
+prune_pred <- predict(prune_rtree,car_test)
+prune_mse <- mean((prune_pred-car_test$Sales)^2)
+print(paste0("The test MSE for the pruned tree is:"),prune_mse)
+```
+##(d)
+```{r}
+car_bag <- randomForest(Sales~.,data=car_train,mtry=10,importance=T,ntree=500)
+pred_bag <- predict(car_bag,car_test)
+bag_mse <- mean((pred_bag-car_test$Sales)^2)
+
+print(paste0("The test MSE for bagging method is:", bag_mse))
+
+importance(car_bag)
+```
+##(e)
+```{r}
+rf_mse <- c()
+for (i in 1:10) {
+  car_rf <- randomForest(Sales ~ ., data = car_train, mtry = i, importance = TRUE, ntree = 500)
+  pred_rf <- predict(car_rf, car_test)
+  rf_mse[i] <- mean((pred_rf - car_test$Sales)^2)
+}
+#Best model
+which.min(rf_mse)
+#Minimum MSE
+rf_mse[which.min(rf_mse)]
+
+importance(car_rf)
+```
+
+## 8.11
+##(a)
+```{r}
+data("Caravan")
+Caravan$Purchase <- ifelse(Caravan$Purchase=="No",0,1)
+crv_train <- Caravan[1:1000,]
+crv_test <- Caravan[1001:5822,]
+```
+
+##(b)
+```{r}
+set.seed(9)
+boost <- gbm(Purchase~.,data=crv_train,shrinkage = 0.01,n.trees = 1000, distribution = "bernoulli")
+kable(summary(boost),row.names=F)
+```
+
+##(c)
+```{r}
+pred_boost <- predict(boost,crv_test,n.trees = 1000,type = "response")
+boost_pred <- ifelse(pred_boost>0.2,1,0)
+table(crv_test$Purchase,boost_pred)
+
+crv_glm <- glm(Purchase~.,data=crv_train,family = binomial)
+
+pred_glm <- predict(crv_glm,crv_test,type="response")
+glm_pred <- ifelse(pred_glm>0.2, 1,0)
+table(crv_test$Purchase,glm_pred)
+```
+
+36/(36+118)=0.2337
+58/(58+350)=0.1421
+
+
+
+
+
+
+
+
+
+

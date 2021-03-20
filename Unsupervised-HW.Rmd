@@ -1,0 +1,221 @@
+---
+title: "Unsupervised-HW"
+author: "Ziyi Bai"
+date: "2021/3/19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 10.3
+##(a)
+```{r}
+x1 <- c(1,1,0,5,6,4)
+x2 <- c(4,3,4,1,2,0)
+df <- data.frame(x1,x2)
+plot(df)
+```
+
+##(b)
+```{r}
+set.seed(99)
+in_clusters <- sample(2,nrow(df),replace=T)
+in_clusters
+plot(x1,x2,col=in_clusters,pch=20,cex=1.5)
+df1 <- data.frame(df,in_clusters)
+```
+##(c)
+```{r}
+cent_1 <- c(mean(df1[df1$in_clusters==1,1]),mean(df1[df1$in_clusters==1,2]))
+cent_2 <- c(mean(df1[df1$in_clusters==2,1]),mean(df1[df1$in_clusters==2,2]))
+
+print(paste0("Centroid for cluster 1 is: ", "(", cent_1[1], ",", cent_1[2], ")"))
+print(paste0("Centroid for cluster 2 is: ", "(", cent_2[1], ",", cent_2[2], ")"))
+plot(x1, x2, col = in_clusters, pch = 20, cex = 1.5)
+points(cent_1[1], cent_1[2], pch = 8, cex = 2, col = 2)
+points(cent_2[1], cent_2[2], pch = 8, cex = 2, col = 3)
+
+```
+##(d)
+```{r}
+euc_dist <- function(v,z){
+  sqrt(sum(v-z)^2)
+}
+
+df1$updated_cluster <- c()
+
+for (i in 1:nrow(df1)) {
+  d1 <- euc_dist(c(df1[i,1],df1[i,2]),c(cent_1[1],cent_1[2]))
+  d2 <- euc_dist(c(df1[i,1],df1[i,2]),c(cent_2[1],cent_2[2]))
+  
+  if (d1<=d2){
+    df1$update_cluster[i] <- 1
+  }else{
+    df1$updated_cluster[i] <- 2
+  }
+}
+
+updated_centroid1 <- c(mean(df1[df1$updated_cluster == 1,1]), mean(df1[df1$updated_cluster == 1,2]))
+updated_centroid2 <- c(mean(df1[df1$updated_cluster == 2,1]), mean(df1[df1$updated_cluster == 2,2]))
+plot(x1, x2, col = df1$updated_cluster+1, pch = 20, cex = 1.5)
+points(updated_centroid1[1], updated_centroid1[2], pch = 8, cex = 2, col = 2)
+points(updated_centroid2[1], updated_centroid2[2], pch = 8, cex = 2, col = 3)
+```
+##(e)
+we don't have any changes.
+
+##(f)
+```{r}
+plot(x1,x2,col=df1$update_cluster+1,pch=20,cex=1.5)
+```
+
+## 10.5
+**Left: The left side plot shows unscaled variables. In this case, the number of socks becomes more important than the number of computers. With K = 2, the K-Means clustering will result in two clusters separately for socks and computer purchases.**
+**Center: Since the variables are scaled, in this case, the purchase of computers becomes as important as socks. Here, the K-Means clustering will produce two clusters - one of people who have purchased a computer and the other of people who haven't.**
+**Right: In this case, K-Means clustering will produce clusters of socks purchases and computer purchases separately because there is a huge difference in the price of socks and computers.**
+
+## 10.6
+##(a)
+90% of the information in the original data is lost in projecting the tissue sample observations onto the first principle component. Or, 90% of the original data is not contain the first priciple component.
+
+##(b)
+Since each patient sample was rin on either of the machine A and B, the machine used could be used as a feature in the PCA. We check if there is an improvment in the PVE after adding the machine used as a feature.
+
+##(c)
+```{r}
+set.seed(9)
+control <- matrix(rnorm(50*1000),ncol=50)
+treatment <- matrix(rnorm(50*1000),ncol=50)
+
+x <- cbind(control,treatment)
+x[1,] <- seq(-18,18 -.36,.36)
+pca <- prcomp(scale(x))
+summary(pca)$importance[,1]
+
+X <- rbind(x,c(rep(0,50),rep(10,50)))
+pca_out <- prcomp(scale(X))
+summary(pca_out)$importance[,1]
+```
+The proportion of variance explained by the first principle component is 9.98%.
+Including the machine used as a feature, coding 0 for A and 10 for B, the PVE increased to 11.5%.
+
+## 10.8
+##(a)
+```{r}
+# the sdev approach to PVE
+data("USArrests")
+pca_usa <- prcomp(USArrests,scale. = T)
+pca_usa$sdev
+
+# variance 
+pca_var <- pca_usa$sdev^2
+pca_var
+
+#PVE
+pve <- pca_var/sum(pca_var)
+pve
+```
+##(b)
+```{r}
+# the prcomp PVE approach
+usa_scaled <- scale(USArrests)
+loadings <- pca_usa$rotation
+sum_var <- sum(apply(as.matrix(usa_scaled)^2,2,sum))
+apply((as.matrix(usa_scaled)%*%loadings)^2,2,sum)/sum_var
+```
+The PVE for each principal component form both the approaches is the same.
+
+## 10.9
+##(a)
+```{r}
+set.seed(9)
+
+hc.complete <- hclust(dist(USArrests),method = "complete")
+plot(hc.complete)
+```
+##(b)
+```{r}
+hc_cut <- cutree(hc.complete,3)
+clusters <- split(data.frame(names(hc_cut),hc_cut),as.factor(hc_cut))
+clusters
+```
+##(c)
+```{r}
+hc_scaled <- hclust(dist(scale(USArrests)),method = "complete")
+plot(hc_scaled)
+```
+##(d)
+```{r}
+hc_scaled_cut <- cutree(hc_scaled,3)
+clusters_scaled <- split(data.frame(names(hc_scaled_cut),hc_scaled_cut),as.factor(hc_scaled_cut))
+clusters_scaled
+
+table(hc_cut,hc_scaled_cut)
+```
+Scaling the variable affect the clusters obtained. It is better to scale the variable because they are measured on different units.
+
+## 10.10
+##(a)
+```{r}
+set.seed(9)
+
+sim_data <- matrix(sapply(1:3, function(x) rnorm(20*50,mean = 0,sd=0.001)),ncol=50)
+class <- unlist(lapply(1:3,FUN=function(x) rep(x,20)))
+
+sim_data <- data.frame(sim_data)
+sim_data$true_lables <- c(rep(1,20),rep(2,20),rep(3,20))
+```
+
+##(b)
+```{r}
+sim_pca <- prcomp(sim_data,scale. = T,center = T)
+plot(sim_pca$x[,1:2],col=class,xlab = "Z1",ylab="Z2",pch=20)
+```
+##(c)
+```{r}
+set.seed(9)
+
+sim_kmeans <- kmeans(sim_data,3)
+table(sim_data$true_lables,sim_kmeans$cluster)
+```
+Cluster the observations correctly.
+
+##(d)
+```{r}
+set.seed(9)
+
+sim_kmeans2 <- kmeans(sim_data,2)
+table(sim_data$true_lables,sim_kmeans2$cluster)
+```
+
+##(e)
+```{r}
+set.seed(9)
+
+sims_kmeans4 <- kmeans(sim_data,4)
+table(sim_data$true_lables,sims_kmeans4$cluster)
+```
+This one dones't perform as well as the above two.
+
+##(f)
+```{r}
+set.seed(9)
+
+km_out <- kmeans(sim_pca$x[,1:2],3)
+table(sim_data$true_lables,km_out$cluster)
+```
+many miss classified observations.
+
+##(g)
+```{r}
+set.seed(9)
+
+km_out_1 <- kmeans(scale(sim_data),3)
+table(sim_data$true_lables,km_out_1$cluster)
+```
+
+
+
+
